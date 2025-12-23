@@ -1,6 +1,9 @@
 from flask import Flask
 from app.config import Config
 from app.extensions import init_extensions
+from app.api import api_bp
+from app.extensions import jwt
+from app.jwt_callbacks import check_if_token_revoked
 
 def create_app():
     app = Flask(__name__)
@@ -9,12 +12,10 @@ def create_app():
     init_extensions(app)
     from app.models import user
 
-    # from app.api.auth import auth_bp
-    # from app.api.messages import messages_bp
-    # from app.api.files import files_bp
+    @jwt.token_in_blocklist_loader
+    def token_blocklist_callback(jwt_header, jwt_payload):
+        return check_if_token_revoked(jwt_header, jwt_payload)
 
-    # app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    # app.register_blueprint(messages_bp, url_prefix="/api/messages")
-    # app.register_blueprint(files_bp, url_prefix="/api/files")
+    app.register_blueprint(api_bp, url_prefix="/api")
 
     return app
