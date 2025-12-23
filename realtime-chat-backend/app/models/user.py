@@ -9,5 +9,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     avatar_url = db.Column(db.String(255), nullable=True)
 
+    messages = db.relationship("Message", back_populates="user", lazy="dynamic")
+
     def __repr__(self):
         return f"<User {self.username}>"
