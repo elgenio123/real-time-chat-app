@@ -453,68 +453,162 @@ Authorization: Bearer <your_jwt_token>
 
 ## WebSocket Events (Real-time)
 
-The application also supports real-time messaging via WebSocket connections. The WebSocket server runs on the same host and handles the following events:
+The application supports real-time messaging via Socket.IO connections. The WebSocket server runs on the same host and handles the following events:
 
 ### Connection
 - **URL**: `ws://localhost:5000/`
 - **Authentication**: Include JWT token as query parameter: `?token=<jwt_token>`
 
-### Events
+### Connection Events
+
+#### Connect
+- **Event**: `connect`
+- **Description**: Establish WebSocket connection with JWT authentication
+- **Response**: `connected` event with welcome message
+
+#### Disconnect
+- **Event**: `disconnect`
+- **Description**: Handle client disconnection and cleanup
+
+### Public Chat Events
 
 #### Join Public Chat
-```json
-{
-  "event": "join_public"
-}
-```
+- **Event**: `join_public`
+- **Description**: Join the public chat room
+- **Response**: `user_joined` event broadcasted to all users in public chat
 
 #### Leave Public Chat
-```json
-{
-  "event": "leave_public"
-}
-```
+- **Event**: `leave_public`
+- **Description**: Leave the public chat room
+- **Response**: `user_left` event broadcasted to all users in public chat
 
 #### Send Public Message
-```json
-{
-  "event": "send_public_message",
-  "data": {
-    "content": "Hello everyone!"
+- **Event**: `send_public_message`
+- **Data**:
+  ```json
+  {
+    "content": "string (required)"
   }
-}
-```
+  ```
+- **Response**: `new_public_message` event broadcasted to all users in public chat
+- **Message Format**:
+  ```json
+  {
+    "id": 1,
+    "content": "Hello everyone!",
+    "timestamp": "2023-12-25T10:30:00Z",
+    "user": {
+      "id": 1,
+      "username": "johndoe"
+    },
+    "username": "johndoe"
+  }
+  ```
+
+### Private Chat Events
 
 #### Join Private Chat
-```json
-{
-  "event": "join_private",
-  "data": {
-    "other_user_id": 2
+- **Event**: `join_private`
+- **Data**:
+  ```json
+  {
+    "other_user_id": "integer (required)"
   }
-}
-```
+  ```
+- **Description**: Join a private chat room with another user
+- **Response**: `joined_private` event with chat information
 
 #### Leave Private Chat
+- **Event**: `leave_private`
+- **Data**:
+  ```json
+  {
+    "other_user_id": "integer (required)"
+  }
+  ```
+- **Description**: Leave a private chat room
+
+#### Send Private Message
+- **Event**: `send_private_message`
+- **Data**:
+  ```json
+  {
+    "other_user_id": "integer (required)",
+    "content": "string (required)"
+  }
+  ```
+- **Response**: `new_private_message` event sent to both users in the private chat
+- **Message Format**:
+  ```json
+  {
+    "id": 1,
+    "content": "Private message",
+    "timestamp": "2023-12-25T10:30:00Z",
+    "sender": {
+      "id": 1,
+      "username": "johndoe"
+    },
+    "username": "johndoe"
+  }
+  ```
+
+### Utility Events
+
+#### Get Online Users
+- **Event**: `get_online_users`
+- **Description**: Get list of users currently online in public chat
+- **Response**: `online_users` event with array of online users
+
+### Error Handling
+
+All Socket.IO events can emit an `error` event with error messages:
+
 ```json
 {
-  "event": "leave_private",
-  "data": {
-    "other_user_id": 2
-  }
+  "message": "Error description"
 }
 ```
 
-#### Send Private Message
-```json
-{
-  "event": "send_private_message",
-  "data": {
-    "other_user_id": 2,
-    "content": "Private message"
-  }
-}
-```
+### Room Management
+
+- **Public Room**: `public_chat` - All users in public chat
+- **Private Rooms**: `private_chat_{chat_id}` - Specific to each private conversation
+- Users can be in multiple rooms simultaneously (public + multiple private chats)
+
+### Connection Limits
+
+- JWT token required for connection
+- Invalid tokens result in immediate disconnection
+- Users are tracked by socket ID for room management
+
+## Implementation Details
+
+### Architecture
+
+The application uses a hybrid architecture supporting both REST API endpoints and real-time WebSocket communication:
+
+- **REST API**: Traditional HTTP endpoints for authentication, data CRUD operations
+- **WebSocket**: Real-time events for chat messaging and user presence
+- **Database**: Shared SQLAlchemy models for both REST and real-time operations
+- **Authentication**: JWT tokens used for both HTTP and WebSocket authentication
+
+### Socket.IO Events Implementation
+
+The Socket.IO events are implemented in `app/sockets/chat_events.py`:
+
+- **Connection Handling**: JWT token verification on connect
+- **Room Management**: Flask-SocketIO rooms for public/private chat isolation
+- **Database Integration**: Real-time events create persistent messages in database
+- **Error Handling**: Comprehensive error responses for invalid operations
+- **User Tracking**: In-memory tracking of connected users and their rooms
+
+### Security Considerations
+
+- JWT tokens are validated on every WebSocket connection
+- Users can only access chats they have permission for
+- Private chat rooms are automatically created when needed
+- Message ownership is enforced for deletions
+- Rate limiting should be implemented for production use
 
 ## Error Response Format
 
@@ -608,14 +702,54 @@ Run tests with: `python -m pytest tests/`
 4. Start the server: `python run.py`
 5. Run tests: `python -m pytest tests/`
 
-## Production Considerations
+## Socket.IO Integration
 
-- Enable HTTPS
-- Set secure session cookies
-- Implement rate limiting
-- Add request logging
-- Set up proper CORS configuration
-- Use environment variables for sensitive data
-- Implement proper error monitoring
-- Add API versioning
-- Consider API documentation tools like Swagger/OpenAPI
+The backend uses Flask-SocketIO for real-time communication. The server automatically handles both HTTP requests and WebSocket connections.
+
+### Server Startup
+
+The `run.py` file uses `socketio.run()` instead of Flask's `app.run()` to properly handle WebSocket connections:
+
+```python
+from app import create_app
+from app.extensions import socketio
+
+app = create_app()
+socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+```
+
+### Client Connection
+
+Clients connect using Socket.IO client libraries with JWT authentication:
+
+```javascript
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000', {
+  auth: {
+    token: 'your_jwt_token'
+  }
+});
+```
+
+### Event Handling
+
+All Socket.IO events are defined in `app/sockets/chat_events.py` and include:
+- Connection management with JWT verification
+- Room-based chat (public and private)
+- Real-time message broadcasting
+- User presence tracking
+
+### Testing Socket.IO
+
+Use the provided demo script to test Socket.IO functionality:
+
+```bash
+python socketio_demo.py
+```
+
+This script demonstrates:
+- User authentication
+- Public chat participation
+- Private messaging
+- Real-time event handling

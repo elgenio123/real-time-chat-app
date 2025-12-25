@@ -4,10 +4,12 @@ This project is a real-time chat application with file-sharing capabilities. It 
 
 ## Features
 
-- **Real-Time Messaging**: Instant communication between users.
-- **File Sharing**: Upload and share files seamlessly.
-- **User Authentication**: Secure login and registration system.
-- **Responsive Design**: Optimized for both desktop and mobile devices.
+- **Real-Time Messaging**: Instant communication between users via Socket.IO
+- **Public & Private Chats**: Support for both public chat rooms and private conversations
+- **File Sharing**: Upload and share files seamlessly with validation
+- **User Authentication**: Secure JWT-based login and registration system
+- **WebSocket Events**: Real-time events for joining/leaving chats and sending messages
+- **Responsive Design**: Optimized for both desktop and mobile devices
 
 ## Technologies Used
 

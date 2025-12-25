@@ -4,6 +4,7 @@ from app.extensions import init_extensions
 from app.api import api_bp
 from app.extensions import jwt
 from app.jwt_callbacks import check_if_token_revoked
+from app.sockets import chat_events  # Import socket events
 
 def create_app(config_object=None):
     app = Flask(__name__)
