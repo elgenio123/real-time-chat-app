@@ -22,5 +22,8 @@ class Message(db.Model):
             "id": self.id,
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
-            "user_id": self.user_id
+            "user": {
+                "id": self.user.id,
+                "username": self.user.username
+            }
         }

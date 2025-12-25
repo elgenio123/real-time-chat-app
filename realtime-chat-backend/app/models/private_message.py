@@ -25,6 +25,8 @@ class PrivateMessage(db.Model):
             "id": self.id,
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
-            "sender_id": self.sender_id,
-            "chat_id": self.chat_id
+            "sender": {
+                "id": self.sender.id,
+                "username": self.sender.username
+            }
         }

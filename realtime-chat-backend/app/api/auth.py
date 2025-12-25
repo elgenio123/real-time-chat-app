@@ -15,19 +15,15 @@ def register():
 
     user = User(
         username=data["username"],
-        email=data["email"]
+        email=data["email"],
+        avatar_url=data.get("avatar_url")
     )
     user.set_password(data["password"])
 
     db.session.add(user)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully",
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "email": user.email},
-                    }), 201
+    return jsonify({ "user": user.to_dict() }), 201
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -42,11 +38,7 @@ def login():
 
     return jsonify({
         "access_token": access_token,
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email
-        }
+        "user": user.to_dict()
     }), 200
 
 @auth_bp.route("/logout", methods=["POST"])

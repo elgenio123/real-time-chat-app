@@ -16,9 +16,24 @@ class File(db.Model):
 
     # Optional associations
     public_message_id = db.Column(db.Integer, db.ForeignKey("messages.id"), nullable=True)
-    private_message_id = db.Column(db.Integer, db.ForeignKey("private_messages.id"), nullable=True)
+    private_chat_id = db.Column(db.Integer, db.ForeignKey("private_chats.id"), nullable=True)
 
     uploader = db.relationship("User")
 
     def __repr__(self):
         return f"<File {self.filename}>"
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "filename": self.filename,
+            "file_url": self.file_url,
+            "file_size": self.file_size,
+            "uploaded_at": self.uploaded_at.isoformat(),
+            "uploader": {
+                "id": self.uploader.id,
+                "username": self.uploader.username
+            },
+            "public_message_id": self.public_message_id,
+            "private_chat_id": self.private_chat_id
+        }

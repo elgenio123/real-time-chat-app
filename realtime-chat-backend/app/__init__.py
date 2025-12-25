@@ -5,9 +5,12 @@ from app.api import api_bp
 from app.extensions import jwt
 from app.jwt_callbacks import check_if_token_revoked
 
-def create_app():
+def create_app(config_object=None):
     app = Flask(__name__)
-    app.config.from_object(Config)
+    if config_object:
+        app.config.from_object(config_object)
+    else:
+        app.config.from_object(Config)
 
     init_extensions(app)
     from app.models import user

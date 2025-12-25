@@ -13,14 +13,18 @@ def get_users():
 @user_bp.route("/<int:user_id>", methods=["GET"])
 def get_user(user_id):
 
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
     return jsonify({"user": user.to_dict()}), 200
 
 @user_bp.route("/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
 
     data = request.get_json()
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
 
     if "username" in data:
         user.username = data["username"]
@@ -41,7 +45,9 @@ def update_user(user_id):
 @user_bp.route("/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
 
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
     db.session.delete(user)
     db.session.commit()
 
