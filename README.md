@@ -47,7 +47,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
    ```
 4. Run the backend server:
    ```bash
-   flask run
+   python run.py
    ```
 
 ### Frontend Setup
