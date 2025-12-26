@@ -80,7 +80,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 - `package.json`: Lists JavaScript dependencies.
 
 ## Contributing
-Feel free to clone this repository and create a new branch where you will be running your changes. Make a pull on your branch and open a pull request.
+Feel free to clone this repository and create a new branch where you will be running your changes. Make a push to your branch and open a pull request.
 
 ## License
 This project is licensed under the AIMS License.
