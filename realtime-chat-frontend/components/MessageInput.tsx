@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 
 interface MessageInputProps {
   chat: Chat;
-  onSendMessage: (content: string, files?: File[]) => void;
+  onSendMessage: (content: string, files?: { name: string; size: number; type: string; url: string; thumbnail?: string }[]) => void;
 }
 
 export default function MessageInput({ chat, onSendMessage }: MessageInputProps) {
@@ -31,7 +31,26 @@ export default function MessageInput({ chat, onSendMessage }: MessageInputProps)
 
     setIsUploading(true);
     try {
-      await onSendMessage(message, files);
+      // Process files
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          const url = URL.createObjectURL(file);
+          let thumbnail: string | undefined;
+          if (file.type.startsWith('image/')) {
+            // For images, use the same URL as thumbnail
+            thumbnail = url;
+          }
+          return {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url,
+            thumbnail,
+          };
+        })
+      );
+
+      await onSendMessage(message, processedFiles);
       setMessage('');
       setFiles([]);
     } catch (error) {
@@ -123,7 +142,7 @@ export default function MessageInput({ chat, onSendMessage }: MessageInputProps)
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={`Message ${chat.name}...`}
-          className="flex-1 bg-transparent border-none outline-none resize-none min-h-[20px] max-h-32 py-1"
+          className="flex-1 bg-transparent border-none outline-none resize-none min-h-[20px] max-h-32 py-1 text-gray-900 placeholder-gray-500 scrollbar-hide"
           rows={1}
           disabled={isUploading}
         />

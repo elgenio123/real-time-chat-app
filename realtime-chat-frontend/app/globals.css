@@ -3,9 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --chat-bg: #f0f2f5;
+  --chat-bg: #ffffff;
   --message-sent: #dcf8c6;
-  --message-received: #ffffff;
+  --message-received: #f0f0f0;
   --border: #e0e0e0;
 }
 

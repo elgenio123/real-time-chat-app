@@ -2,15 +2,18 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MessageCircle, Users, Settings } from 'lucide-react';
+import { Search, MessageCircle, Users, LogOut } from 'lucide-react';
 import { Chat, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 interface ChatSidebarProps {
   user: User;
   chats: Chat[];
   selectedChat: Chat | null;
   onSelectChat: (chat: Chat) => void;
+  onClose?: () => void;
 }
 
 export default function ChatSidebar({
@@ -18,8 +21,11 @@ export default function ChatSidebar({
   chats,
   selectedChat,
   onSelectChat,
+  onClose,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const router = useRouter();
 
   const filteredChats = chats.filter(chat =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -36,7 +42,7 @@ export default function ChatSidebar({
   const allChats = [publicChat, ...filteredChats];
 
   return (
-    <div className="w-80 bg-white border-r border-border flex flex-col">
+    <div className="w-full bg-white border-r border-border flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
@@ -49,9 +55,24 @@ export default function ChatSidebar({
             <h2 className="font-semibold text-gray-900">{user.username}</h2>
             <p className="text-sm text-gray-500">Online</p>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Settings className="w-5 h-5 text-gray-600" />
-          </button>
+          <div className="flex space-x-2">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            <button 
+              onClick={() => setShowLogoutModal(true)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <LogOut className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -64,7 +85,7 @@ export default function ChatSidebar({
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
           />
         </div>
       </div>
@@ -125,6 +146,47 @@ export default function ChatSidebar({
           ))}
         </div>
       </div>
+
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/35 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-lg p-6 max-w-sm w-full mx-4"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Confirm Logout
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to log out?
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await api.post('/auth/logout');
+                  } catch (error) {
+                    // Ignore error, proceed to clear localStorage
+                  }
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  router.push('/login');
+                }}
+                className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
