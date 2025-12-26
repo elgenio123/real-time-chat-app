@@ -44,8 +44,15 @@ This project is a real-time chat application with file-sharing capabilities. It 
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+
    ```
-4. Run the backend server:
+
+4. Run tests:
+   ```bash
+   python -m pytest tests/ -v
+
+   ```
+5. Run the backend server:
    ```bash
    python run.py
    ```
