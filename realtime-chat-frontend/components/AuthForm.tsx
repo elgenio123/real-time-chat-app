@@ -73,10 +73,6 @@ export default function AuthForm({ mode }: AuthFormProps) {
                     email: formData.email,
                     password: formData.password,
                 });
-                toast.success('Account created successfully! Please log in.');
-                // Switch to login mode
-                router.push('/login');
-            } else {
                 const response = await api.post('/auth/login', {
                     username: formData.username,
                     password: formData.password,
@@ -85,6 +81,18 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 const { access_token, user } = response.data;
                 localStorage.setItem('token', access_token);
                 console.log(access_token)
+                localStorage.setItem('user', JSON.stringify(user));
+                toast.success('Account created successfully!');
+                router.push('/chat');
+            } else {
+                const response = await api.post('/auth/login', {
+                    username: formData.username,
+                    password: formData.password,
+                });
+
+                const { access_token, user } = response.data;
+                localStorage.setItem('token', access_token);
+                // console.log(access_token)
                 localStorage.setItem('user', JSON.stringify(user));
                 toast.success('Login successful!');
                 router.push('/chat');
