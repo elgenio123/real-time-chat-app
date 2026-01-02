@@ -7,11 +7,13 @@ import { Menu } from 'lucide-react';
 import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import { Chat, User } from '@/lib/types';
+import { api } from '@/lib/api';
 
 export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(410); // default width
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function ChatPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+    // console.log(userData)
 
     if (!token || !userData) {
       router.push('/login');
@@ -26,51 +29,52 @@ export default function ChatPage() {
     }
 
     const parsedUser = JSON.parse(userData);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(parsedUser);
+    console.log('Logged in user:', parsedUser);
 
-    // Mock data for demonstration
-    const mockChats: Chat[] = [
-      {
-        id: 'private-1',
-        name: 'Alice Johnson',
-        type: 'private',
-        participants: [
-          parsedUser,
-          { id: '2', username: 'alice', email: 'alice@example.com' }
-        ],
-        lastMessage: {
-          id: 'msg-1',
-          content: 'Hey, how are you doing?',
-          senderId: '2',
-          sender: { id: '2', username: 'alice', email: 'alice@example.com' },
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          type: 'text',
-        },
-        unreadCount: 2,
-      },
-      {
-        id: 'private-2',
-        name: 'Bob Smith',
-        type: 'private',
-        participants: [
-          parsedUser,
-          { id: '3', username: 'bob', email: 'bob@example.com' }
-        ],
-        lastMessage: {
-          id: 'msg-2',
-          content: 'Thanks for the help!',
-          senderId: parsedUser.id,
-          sender: parsedUser,
-          timestamp: new Date(Date.now() - 1000 * 60 * 30),
-          type: 'text',
-        },
-        unreadCount: 0,
-      },
-    ];
-
-    setChats(mockChats);
+    // Fetch chats
+    fetchChats(parsedUser);
+    // console.log('Fetching chats for user:', parsedUser.id);
   }, [router]);
+
+  const fetchChats = async (user: User) => {
+    if (!user) {
+      // console.log("No user found, cannot fetch chats.", user);
+      return;
+    }
+      
+    setLoadingChats(true);
+    try {
+      // console.log("In try")
+      const response = await api.get('/chats');
+      const fetchedChats: Chat[] = response.data.chats.map((chatData: any) => ({
+        id: chatData.chat_id.toString(),
+        name: chatData.other_user.username,
+        type: 'private' as const,
+        participants: [user, chatData.other_user],
+        unreadCount: chatData.unread_count,
+      }));
+      console.log(response.data)
+      setChats(fetchedChats);
+    } catch (error) {
+      console.error('Failed to fetch chats:', error);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  const handleSelectChat = async (chat: Chat) => {
+    setSelectedChat(chat);
+    if (chat.unreadCount > 0) {
+      try {
+        await api.post(`/chats/${chat.id}/read`);
+        // Update the chat's unread count locally
+        setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
+      } catch (error) {
+        console.error('Failed to mark chat as read:', error);
+      }
+    }
+  };
 
   // Handle window resize to show/hide sidebar
   useEffect(() => {
@@ -120,8 +124,9 @@ export default function ChatPage() {
           user={user}
           chats={chats}
           selectedChat={selectedChat}
-          onSelectChat={setSelectedChat}
+          onSelectChat={handleSelectChat}
           onClose={() => setSidebarOpen(false)}
+          loadingChats={loadingChats}
         />
         {/* Resize handle */}
         <div
@@ -170,10 +175,11 @@ export default function ChatPage() {
           chats={chats}
           selectedChat={selectedChat}
           onSelectChat={(chat) => {
-            setSelectedChat(chat);
+            handleSelectChat(chat);
             setSidebarOpen(false);
           }}
           onClose={() => setSidebarOpen(false)}
+          loadingChats={loadingChats}
         />
       </motion.div>
 

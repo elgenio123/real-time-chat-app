@@ -15,6 +15,7 @@ interface ChatSidebarProps {
   selectedChat: Chat | null;
   onSelectChat: (chat: Chat) => void;
   onClose?: () => void;
+  loadingChats?: boolean;
 }
 
 export default function ChatSidebar({
@@ -23,6 +24,7 @@ export default function ChatSidebar({
   selectedChat,
   onSelectChat,
   onClose,
+  loadingChats = false,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -35,6 +37,7 @@ export default function ChatSidebar({
     setLoadingUsers(true);
     try {
       const response = await api.get('/users/');
+      console.log(response);
       setAllUsers(response.data.users.filter((u: User) => u.id !== user.id)); // Exclude current user
       setShowUsersModal(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -111,57 +114,69 @@ export default function ChatSidebar({
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto chat-scrollbar">
         <div className="px-2">
-          {allChats.map((chat) => (
-            <motion.div
-              key={chat.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onSelectChat(chat)}
-              className={cn(
-                "flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors mb-1",
-                selectedChat?.id === chat.id
-                  ? "bg-blue-50 border border-blue-200"
-                  : "hover:bg-gray-50"
-              )}
-            >
-              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                {chat.type === 'public' ? (
-                  <Users className="w-6 h-6 text-gray-600" />
-                ) : (
-                  <MessageCircle className="w-6 h-6 text-gray-600" />
+          {loadingChats ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : allChats.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">No chats yet</p>
+              <p className="text-sm text-gray-400">Start a conversation to see your chats here</p>
+            </div>
+          ) : (
+            allChats.map((chat) => (
+              <motion.div
+                key={chat.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSelectChat(chat)}
+                className={cn(
+                  "flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors mb-1",
+                  selectedChat?.id === chat.id
+                    ? "bg-blue-50 border border-blue-200"
+                    : "hover:bg-gray-50"
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-gray-900 truncate">
-                    {chat.name}
-                  </h3>
-                  {chat.lastMessage && (
-                    <span className="text-xs text-gray-500">
-                      {new Date(chat.lastMessage.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
+              >
+                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                  {chat.type === 'public' ? (
+                    <Users className="w-6 h-6 text-gray-600" />
+                  ) : (
+                    <MessageCircle className="w-6 h-6 text-gray-600" />
                   )}
                 </div>
-                {chat.lastMessage && (
-                  <p className="text-sm text-gray-600 truncate">
-                    {chat.lastMessage.content}
-                  </p>
-                )}
-              </div>
-              {chat.unreadCount > 0 && (
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-white font-medium">
-                    {chat.unreadCount}
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900 truncate">
+                      {chat.name}
+                    </h3>
+                    {chat.lastMessage && (
+                      <span className="text-xs text-gray-500">
+                        {new Date(chat.lastMessage.timestamp).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  {chat.lastMessage && (
+                    <p className="text-sm text-gray-600 truncate">
+                      {chat.lastMessage.content}
+                    </p>
+                  )}
                 </div>
-              )}
-            </motion.div>
-          ))}
+                {chat.unreadCount > 0 && (
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs text-white font-medium">
+                      {chat.unreadCount}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 

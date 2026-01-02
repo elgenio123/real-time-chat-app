@@ -5,6 +5,7 @@ from app.models.message import Message
 from app.models.private_message import PrivateMessage
 from app.models.private_chat import PrivateChat
 from app.models.user import User
+from app.models.unread_count import UnreadCount
 
 messages_bp = Blueprint("messages", __name__)
 
@@ -70,6 +71,15 @@ def create_private_message(other_user_id):
         chat_id=chat.id
     )
     db.session.add(message)
+
+    # Increment unread count for the other user
+    unread = UnreadCount.query.filter_by(user_id=other_user_id, chat_id=chat.id).first()
+    if not unread:
+        unread = UnreadCount(user_id=other_user_id, chat_id=chat.id, count=1)
+        db.session.add(unread)
+    else:
+        unread.count += 1
+
     db.session.commit()
 
     return jsonify(message.to_dict()), 201
@@ -114,3 +124,41 @@ def delete_private_message(other_user_id, message_id):
     db.session.commit()
 
     return jsonify({"message": "Message deleted"}), 200
+
+#get all private chats for the logged in user
+@messages_bp.route("/chats", methods=["GET"])
+@jwt_required()
+def get_private_chats():
+    user_id = int(get_jwt_identity())
+    chats = PrivateChat.query.filter(
+        (PrivateChat.user1_id == user_id) | (PrivateChat.user2_id == user_id)
+    ).all()
+
+    chat_list = []
+    for chat in chats:
+        other_user_id = chat.user2_id if chat.user1_id == user_id else chat.user1_id
+        other_user = db.session.get(User, other_user_id)
+        unread = UnreadCount.query.filter_by(user_id=user_id, chat_id=chat.id).first()
+        unread_count = unread.count if unread else 0
+        chat_list.append({
+            "chat_id": chat.id,
+            "other_user": other_user.to_dict() if other_user else None,
+            "unread_count": unread_count
+        })
+
+    return jsonify({"chats": chat_list}), 200
+
+@messages_bp.route("/chats/<int:chat_id>/read", methods=["POST"])
+@jwt_required()
+def mark_chat_as_read(chat_id):
+    user_id = int(get_jwt_identity())
+    chat = db.session.get(PrivateChat, chat_id)
+    if not chat or (chat.user1_id != user_id and chat.user2_id != user_id):
+        return jsonify({"message": "Chat not found"}), 404
+
+    unread = UnreadCount.query.filter_by(user_id=user_id, chat_id=chat_id).first()
+    if unread:
+        unread.count = 0
+        db.session.commit()
+
+    return jsonify({"message": "Chat marked as read"}), 200

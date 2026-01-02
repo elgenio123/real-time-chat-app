@@ -67,6 +67,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         setIsLoading(true);
         try {
+            e.preventDefault();
             if (mode === 'register') {
                 await api.post('/auth/register', {
                     username: formData.username,
@@ -92,7 +93,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
                 const { access_token, user } = response.data;
                 localStorage.setItem('token', access_token);
-                // console.log(access_token)
+                console.log(access_token)
                 localStorage.setItem('user', JSON.stringify(user));
                 toast.success('Login successful!');
                 router.push('/chat');
