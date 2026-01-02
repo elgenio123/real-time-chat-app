@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState } from 'react';
@@ -38,7 +39,7 @@ export default function ChatSidebar({
     try {
       const response = await api.get('/users/');
       console.log(response);
-      setAllUsers(response.data.users.filter((u: User) => u.id !== user.id)); // Exclude current user
+      setAllUsers(response.data.users.map((u: any) => ({ ...u, avatar: u.avatar_url })).filter((u: User) => u.id !== user.id)); // Exclude current user
       setShowUsersModal(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error) {
@@ -67,10 +68,14 @@ export default function ChatSidebar({
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-semibold text-lg">
-              {user.username.charAt(0).toUpperCase()}
-            </span>
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden">
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white font-semibold text-lg">
+                {user.username.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex-1">
             <h2 className="font-semibold text-gray-900">{user.username}</h2>
@@ -140,9 +145,15 @@ export default function ChatSidebar({
                     : "hover:bg-gray-50"
                 )}
               >
-                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {chat.type === 'public' ? (
                     <Users className="w-6 h-6 text-gray-600" />
+                  ) : chat.participants.find(p => p.id !== user.id)?.avatar ? (
+                    <img
+                      src={chat.participants.find(p => p.id !== user.id)?.avatar}
+                      alt={chat.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <MessageCircle className="w-6 h-6 text-gray-600" />
                   )}
@@ -277,10 +288,14 @@ export default function ChatSidebar({
                       }}
                       className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-semibold text-sm">
-                          {chatUser.username.charAt(0).toUpperCase()}
-                        </span>
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {chatUser.avatar ? (
+                          <img src={chatUser.avatar} alt={chatUser.username} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-semibold text-sm">
+                            {chatUser.username.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">

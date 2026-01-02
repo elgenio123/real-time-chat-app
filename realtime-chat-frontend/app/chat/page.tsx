@@ -29,7 +29,7 @@ export default function ChatPage() {
     }
 
     const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
+    setUser({ ...parsedUser, avatar: parsedUser.avatar_url });
     console.log('Logged in user:', parsedUser);
 
     // Fetch chats
@@ -51,7 +51,7 @@ export default function ChatPage() {
         id: chatData.chat_id.toString(),
         name: chatData.other_user.username,
         type: 'private' as const,
-        participants: [user, chatData.other_user],
+        participants: [user, { ...chatData.other_user, avatar: chatData.other_user.avatar_url }],
         unreadCount: chatData.unread_count,
         lastMessage: chatData.last_message ? {
           id: chatData.last_message.id.toString(),

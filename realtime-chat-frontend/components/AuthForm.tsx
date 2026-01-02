@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import toast from 'react-hot-toast';
 
 interface AuthFormProps {
@@ -18,11 +20,35 @@ export default function AuthForm({ mode }: AuthFormProps) {
         email: '',
         password: '',
         confirmPassword: '',
+        avatarUrl: '',
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const router = useRouter();
+
+    const handleAvatarUpload = async (file: File) => {
+        setUploadingAvatar(true);
+        try {
+            const url = await uploadToCloudinary(file);
+            if (url) {
+                setFormData(prev => ({ ...prev, avatarUrl: url }));
+                toast.success('Avatar uploaded successfully!');
+            }
+        } catch (error) {
+            toast.error('Failed to upload avatar');
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handleAvatarUpload(file);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,6 +99,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                     username: formData.username,
                     email: formData.email,
                     password: formData.password,
+                    avatar_url: formData.avatarUrl,
                 });
                 const response = await api.post('/auth/login', {
                     username: formData.username,
@@ -132,25 +159,65 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {mode === 'register' && (
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email Address
-                            </label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-700"
-                                    placeholder="Enter your email"
-                                    required
-                                />
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Profile Picture
+                                </label>
+                                <div className="flex justify-center">
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                            id="avatar-upload"
+                                        />
+                                        <label
+                                            htmlFor="avatar-upload"
+                                            className="w-24 h-24 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors relative overflow-hidden"
+                                        >
+                                            {formData.avatarUrl ? (
+                                                <Image
+                                                    src={formData.avatarUrl}
+                                                    alt="Avatar"
+                                                    className="w-full h-full object-cover"
+                                                    fill
+                                                    sizes="96px"
+                                                />
+                                            ) : uploadingAvatar ? (
+                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <svg className="w-8 h-8 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                    <p className="text-xs text-gray-500">Add photo</p>
+                                                </div>
+                                            )}
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address
+                                </label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-700"
+                                        placeholder="Enter your email"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     <div>
