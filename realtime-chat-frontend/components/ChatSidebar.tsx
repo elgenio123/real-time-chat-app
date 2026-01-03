@@ -8,8 +8,7 @@ import { Chat, ChatSidebarProps, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';
-
+import toast from 'react-hot-toast';import Avatar from '@/components/Avatar';
 export default function ChatSidebar({
   user,
   chats,
@@ -61,15 +60,7 @@ export default function ChatSidebar({
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white font-semibold text-lg">
-                {user.username.charAt(0).toUpperCase()+user.username.charAt(1).toUpperCase()}
-              </span>
-            )}
-          </div>
+          <Avatar user={user} size="md" />
           <div className="flex-1">
             <h2 className="font-semibold text-gray-900">{user.username}</h2>
             <p className="text-sm text-gray-500">Online</p>
@@ -148,8 +139,13 @@ export default function ChatSidebar({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                     <span className="text-white font-semibold text-lg">
-                      {user.username.charAt(0).toUpperCase()+ user.username.charAt(1).toUpperCase()}
+                    <span className="text-white font-semibold text-lg bg-gradient-to-br from-blue-400 to-blue-600 w-full h-full flex items-center justify-center">
+                      {(chat.participants.find(p => p.id !== user.id)?.username || chat.name)
+                        .split(' ')
+                        .map(word => word.charAt(0)?.toUpperCase())
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join('')}
                     </span>
                   )}
                 </div>
@@ -283,15 +279,7 @@ export default function ChatSidebar({
                       }}
                       className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {chatUser.avatar ? (
-                          <img src={chatUser.avatar} alt={chatUser.username} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-white font-semibold text-sm">
-                            {chatUser.username.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
+                      <Avatar user={chatUser} size="md" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">
                           {chatUser.username}

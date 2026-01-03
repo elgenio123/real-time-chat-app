@@ -6,6 +6,7 @@ import { Send, Phone, Video, MoreVertical } from 'lucide-react';
 import { Message, ChatWindowProps } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import MessageInput from '@/components/MessageInput';
+import Avatar from '@/components/Avatar';
 import { api } from '@/lib/api';
 import { formatDateLabel, isDifferentDay } from '@/lib/utils';
 
@@ -116,15 +117,13 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       {/* Chat Header */}
       <div className="flex-shrink-0 bg-white border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-            {chat.type === 'public' ? (
+          {chat.type === 'public' ? (
+            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
               <span className="text-gray-600 font-semibold">#</span>
-            ) : (
-              <span className="text-white font-semibold text-sm">
-                {chat.name.charAt(0).toUpperCase() + chat.name.charAt(1).toUpperCase()}
-              </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <Avatar user={chat.participants.find(p => p.id !== user.id) || chat.participants[0]} size="md" />
+          )}
           <div>
             <h3 className="font-semibold text-gray-900">{chat.name}</h3>
             <p className="text-sm text-gray-500">
@@ -176,7 +175,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                     )}
                     <MessageBubble
                       message={message}
-                      isOwn={message.senderId === user.id}
+                      isOwn={String(message.senderId) === String(user.id)}
                       isPrivate={chat.type === 'private'}
                     />
                   </div>

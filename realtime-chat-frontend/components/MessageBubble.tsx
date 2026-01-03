@@ -5,29 +5,16 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Message, FileData, MessageBubbleProps } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
-
+import Avatar from '@/components/Avatar';
 
 export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubbleProps) {
 
   const avatar = (
     <div className={cn(
-      "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mx-2",
-      isOwn ? "bg-blue-400 order-2 ml-2" : "bg-green-400 mr-2"
+      "flex-shrink-0",
+      isOwn ? "order-2 ml-2" : "mr-2"
     )}>
-      {message.sender.avatar ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={message.sender.avatar}
-          alt={message.sender.username}
-          width={32}
-          height={32}
-          className="w-8 h-8 rounded-full object-cover"
-        />
-      ) : (
-        <span className="text-white font-semibold text-sm">
-          {message.sender.username.charAt(0).toUpperCase()+message.sender.username.charAt(1).toUpperCase()}
-        </span>
-      )}
+      <Avatar user={message.sender} size="sm" />
     </div>
   );
 
@@ -37,7 +24,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className={cn(
-          "flex mb-4", 
+          "flex mb-4 items-end",
           isOwn ? "justify-end" : "justify-start"
         )}
       >
@@ -49,13 +36,15 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
             ? "bg-message-sent text-white rounded-br-sm"
             : "bg-message-received text-white rounded-bl-sm"
         )}>
-           <div className="text-xs font-semibold mb-1 text-green-200">
+          {!isOwn && !isPrivate && (
+            <div className="text-xs font-semibold mb-1 text-gray-100">
               {message.sender.username}
             </div>
+          )}
           <FileAttachment file={message.file!} />
           <div className={cn(
             "text-xs mt-1",
-            isOwn ? "text-blue-100" : "text-gray-500"
+            isOwn ? "text-blue-100" : "text-gray-200"
           )}>
             {formatTime(message.timestamp)}
           </div>
@@ -70,7 +59,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex mb-4",
+        "flex mb-4 items-end",
         isOwn ? "justify-end" : "justify-start"
       )}
     >
@@ -82,7 +71,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
           : "bg-message-received text-white rounded-bl-sm"
       )}>
         {!isOwn && !isPrivate && (
-          <div className="text-xs font-semibold mb-1 text-green-200">
+          <div className="text-xs font-semibold mb-1 text-gray-100">
             {message.sender.username}
           </div>
         )}
@@ -91,7 +80,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
         </p>
         <div className={cn(
           "text-xs mt-1",
-          isOwn ? "text-blue-100" : "text-gray-500"
+          isOwn ? "text-blue-100" : "text-gray-200"
         )}>
           {formatTime(message.timestamp)}
         </div>

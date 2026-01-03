@@ -74,3 +74,9 @@ export interface MessageInputProps {
   chat: Chat;
   onSendMessage: (content: string, files?: { name: string; size: number; type: string; url: string; thumbnail?: string }[]) => void;
 }
+
+export interface AvatarProps {
+  user: User;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
