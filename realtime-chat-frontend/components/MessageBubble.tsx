@@ -3,7 +3,7 @@
 import { FileText, File } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Message, FileData, MessageBubbleProps } from '@/lib/types';
+import { FileData, MessageBubbleProps } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
 import Avatar from '@/components/Avatar';
 
