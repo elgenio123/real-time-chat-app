@@ -117,3 +117,12 @@ export const getOnlineUsers = () => {
   console.log('📤 Requesting online users');
   socket.emit('get_online_users');
 };
+
+export const markChatAsRead = (chatId: string | number) => {
+  if (!socket?.connected) {
+    console.error('❌ Socket not connected. Cannot mark chat as read');
+    return;
+  }
+  console.log('📤 Marking chat as read:', chatId);
+  socket.emit('mark_chat_read', { chat_id: chatId });
+};

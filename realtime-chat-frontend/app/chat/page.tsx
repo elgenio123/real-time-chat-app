@@ -8,7 +8,7 @@ import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import { Chat, User } from '@/lib/types';
 import { api } from '@/lib/api';
-import { initializeSocket, disconnectSocket } from '@/lib/socket';
+import { initializeSocket, disconnectSocket, getSocket, markChatAsRead } from '@/lib/socket';
 
 export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -34,19 +34,67 @@ export default function ChatPage() {
     setUser({ ...parsedUser, avatar: parsedUser.avatar_url });
     console.log('Logged in user:', parsedUser);
 
-    // Initialize Socket.IO connection
     initializeSocket();
 
-    // Fetch chats
     fetchChats(parsedUser);
     // console.log('Fetching chats for user:', parsedUser.id);
 
-    // Cleanup on unmount
     return () => {
       disconnectSocket();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  // Socket.IO event listeners for real-time unread count updates
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Handle new public messages
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleNewPublicMessage = (data: any) => {
+      console.log('📬 New public message received in chat page:', data);
+      // Only increment unread if not currently viewing public chat
+      if (!selectedChat || selectedChat.type !== 'public') {
+        // Check if message is from another user
+        const senderId = data.user?.id?.toString();
+        if (String(senderId) !== String(user.id)) {
+          console.log('📬 Incrementing public unread count');
+          setPublicChatUnreadCount(prev => prev + 1);
+        }
+      }
+    };
+
+    // Handle new private messages - use backend unread count
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleUnreadCountUpdate = (data: any) => {
+      console.log('📬 Unread count update received:', data);
+      const chatId = data.chat_id?.toString();
+      const newUnreadCount = data.unread_count;
+      
+      setChats(prev => prev.map(chat => {
+        if (chat.id === chatId) {
+          // Only update if not currently viewing this chat
+          if (selectedChat?.id === chat.id) {
+            return chat;
+          }
+          console.log(`📬 Updating chat ${chatId} unread count to ${newUnreadCount}`);
+          return { ...chat, unreadCount: newUnreadCount };
+        }
+        return chat;
+      }));
+    };
+
+    socket.on('new_public_message', handleNewPublicMessage);
+    socket.on('unread_count_update', handleUnreadCountUpdate);
+
+    return () => {
+      socket.off('new_public_message', handleNewPublicMessage);
+      socket.off('unread_count_update', handleUnreadCountUpdate);
+    };
+  }, [user, selectedChat]);
 
   const fetchChats = async (user: User) => {
     if (!user) {
@@ -95,15 +143,11 @@ export default function ChatPage() {
         setPublicChatUnreadCount(0);
         return;
       }
-
-      // Get last read timestamp from localStorage
       const lastReadTimestamp = localStorage.getItem('publicChatLastRead');
       
       if (!lastReadTimestamp) {
-        // If never read, all messages are unread
         setPublicChatUnreadCount(messages.length);
       } else {
-        // Count messages after last read
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const unreadCount = messages.filter((msg: any) => 
           new Date(msg.timestamp) > new Date(lastReadTimestamp)
@@ -123,14 +167,21 @@ export default function ChatPage() {
       // Mark public chat as read by storing current timestamp
       localStorage.setItem('publicChatLastRead', new Date().toISOString());
       setPublicChatUnreadCount(0);
-    } else if (chat.unreadCount > 0) {
-      try {
-        await api.post(`/chats/${chat.id}/read`);
-        // Update the chat's unread count locally
-        setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
-      } catch (error) {
-        console.error('Failed to mark chat as read:', error);
+    } else {
+      // Reset unread count locally immediately
+      setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
+      
+      // Mark as read via REST API
+      if (chat.unreadCount > 0) {
+        try {
+          await api.post(`/chats/${chat.id}/read`);
+        } catch (error) {
+          console.error('Failed to mark chat as read via API:', error);
+        }
       }
+      
+      // Mark as read via Socket.IO (updates backend unread count in real-time)
+      markChatAsRead(chat.id);
     }
   };
 

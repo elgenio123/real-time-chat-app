@@ -143,20 +143,25 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
     // Handle incoming public messages
     const handleNewPublicMessage = (data: any) => {
       console.log('📨 Received new public message:', data);
+      console.log('📨 Current user ID:', user.id);
+      console.log('📨 Message sender ID:', data.user?.id);
       
+      const senderId = data.user?.id?.toString() || data.user_id?.toString();
       const newMessage: Message = {
         id: data.id?.toString() || `msg-${Date.now()}`,
         content: data.content,
-        senderId: data.user_id?.toString() || data.sender_id?.toString(),
+        senderId: senderId,
         sender: {
-          id: data.user_id?.toString() || data.sender_id?.toString(),
-          username: data.username || 'Unknown',
+          id: senderId,
+          username: data.user?.username || data.username || 'Unknown',
           email: '',
-          avatar: undefined,
+          avatar: data.user?.avatar_url || undefined,
         },
         timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         type: 'text',
       };
+      
+      console.log('📨 isOwn check:', String(senderId) === String(user.id));
 
       setMessages(prev => {
         // Avoid duplicates
@@ -169,21 +174,26 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
 
     // Handle incoming private messages
     const handleNewPrivateMessage = (data: any) => {
-      console.log('Received new private message:', data);
+      console.log('📨 Received new private message:', data);
+      console.log('📨 Current user ID:', user.id);
+      console.log('📨 Message sender ID:', data.sender?.id);
       
+      const senderId = data.sender?.id?.toString() || data.sender_id?.toString();
       const newMessage: Message = {
         id: data.id?.toString() || `msg-${Date.now()}`,
         content: data.content,
-        senderId: data.sender_id?.toString(),
+        senderId: senderId,
         sender: {
-          id: data.sender_id?.toString(),
-          username: data.username || 'Unknown',
+          id: senderId,
+          username: data.sender?.username || data.username || 'Unknown',
           email: '',
-          avatar: undefined,
+          avatar: data.sender?.avatar_url || undefined,
         },
         timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         type: 'text',
       };
+      
+      console.log('📨 isOwn check:', String(senderId) === String(user.id));
 
       setMessages(prev => {
         // Avoid duplicates
@@ -274,7 +284,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       </div>
     );
   }
-  console.log("Rendering ChatWindow for chat:", chat);
+  // console.log("Rendering ChatWindow for chat:", chat);
 
   return (
     <div className="flex-1 flex flex-col bg-gray-500 h-full overflow-hidden">

@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.message import Message
 from app.models.private_message import PrivateMessage
 from app.models.private_chat import PrivateChat
+from app.models.unread_count import UnreadCount
 
 # Store connected users and their rooms
 connected_users = {}
@@ -41,7 +42,12 @@ def handle_connect():
                 'rooms': set()
             }
 
+            # Join user to a personal notification room (for notifications not tied to chat rooms)
+            user_room = f"user_{user.id}"
+            join_room(user_room, sid=request.sid)
+
             print(f"User {user.username} connected with SID {request.sid}")
+            print(f"User {user.username} joined personal room: {user_room}")
             emit('connected', {'message': f'Welcome {user.username}!'})
         else:
             # Allow anonymous connection for testing
@@ -263,16 +269,36 @@ def handle_send_private_message(data):
             chat_id=chat.id
         )
         db.session.add(message)
+        
+        # Increment unread count for the other user
+        unread = UnreadCount.query.filter_by(user_id=other_user_id, chat_id=chat.id).first()
+        if not unread:
+            unread = UnreadCount(user_id=other_user_id, chat_id=chat.id, count=1)
+            db.session.add(unread)
+        else:
+            unread.count += 1
+        
         db.session.commit()
 
         # Get message with sender info
         message_data = message.to_dict()
         message_data['username'] = user_info['username']
+        message_data['chat_id'] = chat.id
 
         # Send to both users in the chat room
         emit('new_private_message', message_data, room=room_name)
+        
+        # Emit unread count update to the receiving user's personal room (even if they're not in the chat room yet)
+        receiving_user_room = f"user_{other_user_id}"
+        emit('unread_count_update', {
+            'chat_id': chat.id,
+            'unread_count': unread.count,
+            'other_user_id': user_info['user_id'],
+            'other_username': user_info['username']
+        }, room=receiving_user_room)
 
         print(f"Private message from {user_info['username']} to chat {chat.id}: {content}")
+        print(f"Emitted unread_count_update to room {receiving_user_room}")
 
     except Exception as e:
         db.session.rollback()
@@ -294,3 +320,34 @@ def handle_get_online_users():
             })
 
     emit('online_users', {'users': online_users})
+
+@socketio.on('mark_chat_read')
+def handle_mark_chat_read(data):
+    """Mark a chat as read and reset unread count"""
+    if request.sid not in connected_users:
+        emit('error', {'message': 'Not authenticated'})
+        return
+
+    user_info = connected_users[request.sid]
+    chat_id = data.get('chat_id')
+
+    if not chat_id:
+        emit('error', {'message': 'Chat ID required'})
+        return
+
+    try:
+        chat_id = int(chat_id)
+        
+        # Reset unread count for this user and chat
+        unread = UnreadCount.query.filter_by(user_id=user_info['user_id'], chat_id=chat_id).first()
+        if unread:
+            unread.count = 0
+            db.session.commit()
+            print(f"User {user_info['username']} marked chat {chat_id} as read")
+        
+        emit('chat_marked_read', {'chat_id': chat_id})
+        
+    except Exception as e:
+        db.session.rollback()
+        emit('error', {'message': 'Failed to mark chat as read'})
+        print(f"Error marking chat as read: {e}")
