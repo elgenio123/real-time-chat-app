@@ -18,6 +18,11 @@ class Message(db.Model):
         return f"<Message {self.id} by User {self.user_id}>"
     
     def to_dict(self):
+        from app.models.file import File
+        
+        # Get associated files if any
+        files = File.query.filter_by(public_message_id=self.id).all()
+        
         return {
             "id": self.id,
             "content": self.content,
@@ -26,5 +31,6 @@ class Message(db.Model):
                 "id": self.user.id,
                 "username": self.user.username,
                 'avatar_url': self.user.avatar_url
-            }
+            },
+            "files": [file.to_dict() for file in files] if files else []
         }

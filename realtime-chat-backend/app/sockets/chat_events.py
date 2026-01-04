@@ -421,6 +421,7 @@ def handle_send_public_file(data):
             filename=filename,
             file_url=file_url,
             file_size=file_size,
+            file_type=file_type,
             uploader_id=user_info['user_id'],
             public_message_id=message.id
         )
@@ -430,7 +431,6 @@ def handle_send_public_file(data):
         # Prepare message data with file info
         message_data = message.to_dict()
         message_data['file'] = file_record.to_dict()
-        message_data['file']['type'] = file_type
 
         # Broadcast to all users in public chat
         emit('new_public_file_message', message_data, room=public_room)
@@ -495,7 +495,9 @@ def handle_send_private_file(data):
             filename=filename,
             file_url=file_url,
             file_size=file_size,
+            file_type=file_type,
             uploader_id=user_info['user_id'],
+            private_message_id=message.id,
             private_chat_id=chat.id
         )
         db.session.add(file_record)
@@ -515,7 +517,6 @@ def handle_send_private_file(data):
         message_data['username'] = user_info['username']
         message_data['chat_id'] = chat.id
         message_data['file'] = file_record.to_dict()
-        message_data['file']['type'] = file_type
 
         # Send to both users in the chat room
         emit('new_private_file_message', message_data, room=room_name)

@@ -2,13 +2,12 @@
 
 import { FileText, File } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { useState } from 'react';
 import { FileData, MessageBubbleProps } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
 import Avatar from '@/components/Avatar';
 
 export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubbleProps) {
-
   const avatar = (
     <div className={cn(
       "flex-shrink-0",
@@ -98,17 +97,33 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
 }
 
 function FileAttachment({ file }: { file: FileData }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const isImage = file.type.startsWith('image/');
 
   if (isImage) {
     return (
       <div className="space-y-2">
-        <Image
+        {!imageLoaded && !imageError && (
+          <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center animate-pulse">
+            <div className="w-8 h-8 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin" />
+          </div>
+        )}
+        {imageError && (
+          <div className="w-full h-64 bg-gray-300 rounded-lg flex items-center justify-center">
+            <span className="text-gray-600 text-sm">Failed to load image</span>
+          </div>
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={file.url}
           alt={file.name}
-          width={300}
-          height={300}
-          className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
+          className={cn(
+            "max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity",
+            imageLoaded ? "block" : "hidden"
+          )}
           onClick={() => window.open(file.url, '_blank')}
         />
       </div>

@@ -64,19 +64,46 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         if (chat.type === 'public') {
           // Fetch public messages
           const response = await api.get('/messages');
-          const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
-            id: msg.id.toString(),
-            content: msg.content,
-            senderId: msg.user.id.toString(),
-            sender: {
-              id: msg.user.id.toString(),
-              username: msg.user.username,
-              email: '',
-              avatar: msg.user.avatar_url,
-            },
-            timestamp: new Date(msg.timestamp),
-            type: 'text' as const,
-          }));
+          const fetchedMessages: Message[] = response.data.messages.map((msg: any) => {
+            // Check if message has files
+            if (msg.files && msg.files.length > 0) {
+              const file = msg.files[0]; // Get first file
+              return {
+                id: msg.id.toString(),
+                content: msg.content,
+                senderId: msg.user.id.toString(),
+                sender: {
+                  id: msg.user.id.toString(),
+                  username: msg.user.username,
+                  email: '',
+                  avatar: msg.user.avatar_url,
+                },
+                timestamp: new Date(msg.timestamp),
+                type: 'file',
+                file: {
+                  id: file.id.toString(),
+                  name: file.filename,
+                  size: file.file_size,
+                  type: file.file_type || 'application/octet-stream',
+                  url: file.file_url,
+                  thumbnail: (file.file_type || '').startsWith('image/') ? file.file_url : undefined,
+                },
+              };
+            }
+            return {
+              id: msg.id.toString(),
+              content: msg.content,
+              senderId: msg.user.id.toString(),
+              sender: {
+                id: msg.user.id.toString(),
+                username: msg.user.username,
+                email: '',
+                avatar: msg.user.avatar_url,
+              },
+              timestamp: new Date(msg.timestamp),
+              type: 'text' as const,
+            };
+          });
           setMessages(fetchedMessages);
           
           try {
@@ -91,19 +118,46 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           const otherUser = chat.participants.find(p => p.id !== user.id);
           if (otherUser) {
             const response = await api.get(`/messages/private/${otherUser.id}`);
-            const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
-              id: msg.id.toString(),
-              content: msg.content,
-              senderId: msg.sender.id.toString(),
-              sender: {
-                id: msg.sender.id.toString(),
-                username: msg.sender.username,
-                email: '',
-                avatar: msg.sender.avatar_url,
-              },
-              timestamp: new Date(msg.timestamp),
-              type: 'text' as const,
-            }));
+            const fetchedMessages: Message[] = response.data.messages.map((msg: any) => {
+              // Check if message has files
+              if (msg.files && msg.files.length > 0) {
+                const file = msg.files[0]; // Get first file
+                return {
+                  id: msg.id.toString(),
+                  content: msg.content,
+                  senderId: msg.sender.id.toString(),
+                  sender: {
+                    id: msg.sender.id.toString(),
+                    username: msg.sender.username,
+                    email: '',
+                    avatar: msg.sender.avatar_url,
+                  },
+                  timestamp: new Date(msg.timestamp),
+                  type: 'file',
+                  file: {
+                    id: file.id.toString(),
+                    name: file.filename,
+                    size: file.file_size,
+                    type: file.file_type || 'application/octet-stream',
+                    url: file.file_url,
+                    thumbnail: (file.file_type || '').startsWith('image/') ? file.file_url : undefined,
+                  },
+                };
+              }
+              return {
+                id: msg.id.toString(),
+                content: msg.content,
+                senderId: msg.sender.id.toString(),
+                sender: {
+                  id: msg.sender.id.toString(),
+                  username: msg.sender.username,
+                  email: '',
+                  avatar: msg.sender.avatar_url,
+                },
+                timestamp: new Date(msg.timestamp),
+                type: 'text' as const,
+              };
+            });
             setMessages(fetchedMessages);
           }
         }
@@ -227,9 +281,9 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           id: fileData.id?.toString() || `file-${Date.now()}`,
           name: fileData.filename,
           size: fileData.file_size,
-          type: fileData.type || 'application/octet-stream',
+          type: fileData.file_type || 'application/octet-stream',
           url: fileData.file_url,
-          thumbnail: fileData.type?.startsWith('image/') ? fileData.file_url : undefined,
+          thumbnail: (fileData.file_type || '').startsWith('image/') ? fileData.file_url : undefined,
         } : undefined,
       };
 
@@ -265,9 +319,9 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           id: fileData.id?.toString() || `file-${Date.now()}`,
           name: fileData.filename,
           size: fileData.file_size,
-          type: fileData.type || 'application/octet-stream',
+          type: fileData.file_type || 'application/octet-stream',
           url: fileData.file_url,
-          thumbnail: fileData.type?.startsWith('image/') ? fileData.file_url : undefined,
+          thumbnail: (fileData.file_type || '').startsWith('image/') ? fileData.file_url : undefined,
         } : undefined,
       };
 
