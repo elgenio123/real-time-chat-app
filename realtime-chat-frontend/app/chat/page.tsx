@@ -224,6 +224,42 @@ export default function ChatPage() {
 
   const handleSelectChat = async (chat: Chat) => {
     console.log('Selected chat:', chat);
+    
+    // Check if this is a temporary chat (ID starts with 'temp-')
+    const isTempChat = chat.id.startsWith('temp-');
+    
+    if (isTempChat && chat.type === 'private') {
+      // Check if a real chat already exists with this user
+      const otherUser = chat.participants.find(p => p.id !== user?.id);
+      if (otherUser) {
+        const existingChat = chats.find(c => 
+          c.type === 'private' && 
+          c.participants.some(p => p.id === otherUser.id)
+        );
+        
+        if (existingChat) {
+          // Use the existing chat instead
+          setSelectedChat(existingChat);
+          
+          // Reset unread count locally immediately
+          setChats(prev => prev.map(c => c.id === existingChat.id ? { ...c, unreadCount: 0 } : c));
+          
+          // Mark as read via REST API
+          if (existingChat.unreadCount > 0) {
+            try {
+              await api.post(`/chats/${existingChat.id}/read`);
+            } catch (error) {
+              console.error('Failed to mark chat as read via API:', error);
+            }
+          }
+          
+          // Mark as read via Socket.IO
+          markChatAsRead(existingChat.id);
+          return;
+        }
+      }
+    }
+    
     setSelectedChat(chat);
     
     if (chat.type === 'public') {
@@ -233,7 +269,8 @@ export default function ChatPage() {
       
       // Notify backend that user opened public chat
       markPublicChatAsRead();
-    } else {
+    } else if (!isTempChat) {
+      // Only mark real chats as read
       // Reset unread count locally immediately
       setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
       

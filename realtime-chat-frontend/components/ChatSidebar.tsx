@@ -280,9 +280,18 @@ export default function ChatSidebar({
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        // TODO: Create or navigate to private chat with this user
-                        toast.success(`Starting conversation with ${chatUser.username}`);
+                        // Create a temporary/virtual chat for this user
+                        const newChat: Chat = {
+                          id: `temp-${chatUser.id}`, // Temporary ID
+                          name: chatUser.username,
+                          type: 'private',
+                          participants: [user, chatUser],
+                          unreadCount: 0,
+                        };
+                        
+                        onSelectChat(newChat);
                         setShowUsersModal(false);
+                        toast.success(`Starting conversation with ${chatUser.username}`);
                       }}
                       className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                     >

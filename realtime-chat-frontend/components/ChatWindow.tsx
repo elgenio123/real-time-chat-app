@@ -59,6 +59,16 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         return;
       }
 
+      // Check if this is a temporary chat (new conversation)
+      const isTempChat = chat.id.startsWith('temp-');
+      
+      if (isTempChat) {
+        // For temporary chats, start with empty messages
+        setMessages([]);
+        setLoadingMessages(false);
+        return;
+      }
+
       setLoadingMessages(true);
       try {
         if (chat.type === 'public') {
@@ -182,16 +192,21 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
 
     console.log('🔵 Setting up socket listeners for chat:', chat.name, 'Connected:', socket.connected);
 
-    // Join appropriate chat room
+    // Check if this is a temporary chat
+    const isTempChat = chat.id.startsWith('temp-');
+
+    // Join appropriate chat room (skip for temporary chats)
     if (chat.type === 'public') {
       console.log('🔵 Joining public chat');
       joinPublicChat();
-    } else {
+    } else if (!isTempChat) {
       const otherUser = chat.participants.find(p => p.id !== user.id);
       if (otherUser) {
         console.log('🔵 Joining private chat with user:', otherUser.id);
         joinPrivateChat(otherUser.id);
       }
+    } else {
+      console.log('🔵 Temporary chat - not joining room yet');
     }
 
     // Handle incoming public messages
@@ -381,10 +396,12 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       socket.off('joined_private', handleJoinedPrivate);
       socket.off('error', handleError);
 
-      // Leave current room
+      // Leave current room (skip for temporary chats)
+      const isTempChat = chat.id.startsWith('temp-');
+      
       if (chat.type === 'public') {
         leavePublicChat();
-      } else {
+      } else if (!isTempChat) {
         const otherUser = chat.participants.find(p => p.id !== user.id);
         if (otherUser) {
           leavePrivateChat(otherUser.id);

@@ -260,16 +260,22 @@ def handle_send_private_message(data):
         emit('error', {'message': 'Invalid user ID'})
         return
 
-    # Get the chat
+    # Get or create the chat
     chat = PrivateChat.get_chat_between_users(user_info['user_id'], other_user_id)
     if not chat:
-        emit('error', {'message': 'Chat not found'})
-        return
+        # Create new chat if it doesn't exist
+        chat = PrivateChat(user1_id=user_info['user_id'], user2_id=other_user_id)
+        db.session.add(chat)
+        db.session.flush()  # Get the chat ID
+        print(f"Created new chat between {user_info['user_id']} and {other_user_id}: chat_id={chat.id}")
 
     room_name = f"private_chat_{chat.id}"
+    
+    # Auto-join the sender to the room if not already in it
     if room_name not in user_info['rooms']:
-        emit('error', {'message': 'Not in this private chat'})
-        return
+        join_room(room_name, sid=request.sid)
+        user_info['rooms'].add(room_name)
+        print(f"Auto-joined user {user_info['username']} to room {room_name}")
 
     try:
         message = PrivateMessage(
@@ -467,16 +473,22 @@ def handle_send_private_file(data):
         emit('error', {'message': 'Invalid user ID'})
         return
 
-    # Get the chat
+    # Get or create the chat
     chat = PrivateChat.get_chat_between_users(user_info['user_id'], other_user_id)
     if not chat:
-        emit('error', {'message': 'Chat not found'})
-        return
+        # Create new chat if it doesn't exist
+        chat = PrivateChat(user1_id=user_info['user_id'], user2_id=other_user_id)
+        db.session.add(chat)
+        db.session.flush()  # Get the chat ID
+        print(f"Created new chat between {user_info['user_id']} and {other_user_id}: chat_id={chat.id}")
 
     room_name = f"private_chat_{chat.id}"
+    
+    # Auto-join the sender to the room if not already in it
     if room_name not in user_info['rooms']:
-        emit('error', {'message': 'Not in this private chat'})
-        return
+        join_room(room_name, sid=request.sid)
+        user_info['rooms'].add(room_name)
+        print(f"Auto-joined user {user_info['username']} to room {room_name}")
 
     try:
         from app.models.file import File
