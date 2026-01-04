@@ -2,6 +2,7 @@
 
 import { AvatarProps } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export default function Avatar({ user, size = 'md', className }: AvatarProps) {
   const sizeClasses = {
@@ -22,10 +23,12 @@ export default function Avatar({ user, size = 'md', className }: AvatarProps) {
     >
       {user.avatar ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={user.avatar}
           alt={user.username}
           className="w-full h-full rounded-full object-cover"
+          width={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
+          height={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
         />
       ) : (
         <span>

@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Avatar from '@/components/Avatar';
 import { disconnectSocket } from '@/lib/socket';
+import Image from 'next/image';
 export default function ChatSidebar({
   user,
   chats,
@@ -135,7 +136,7 @@ export default function ChatSidebar({
                   {chat.type === 'public' ? (
                     <Users className="w-6 h-6 text-gray-600" />
                   ) : chat.participants.find(p => p.id !== user.id)?.avatar ? (
-                    <img
+                    <Image
                       src={chat.participants.find(p => p.id !== user.id)?.avatar || ''}
                       alt={chat.name}
                       className="w-full h-full object-cover"

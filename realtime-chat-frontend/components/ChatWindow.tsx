@@ -46,6 +46,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         }
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch initial messages
@@ -61,7 +62,6 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         if (chat.type === 'public') {
           // Fetch public messages
           const response = await api.get('/messages');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
             id: msg.id.toString(),
             content: msg.content,
@@ -77,7 +77,6 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           }));
           setMessages(fetchedMessages);
           
-          // Fetch total users count for public chat
           try {
             const usersResponse = await api.get('/users/');
             setTotalUsers(usersResponse.data.users.length);
@@ -90,7 +89,6 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           const otherUser = chat.participants.find(p => p.id !== user.id);
           if (otherUser) {
             const response = await api.get(`/messages/private/${otherUser.id}`);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
               id: msg.id.toString(),
               content: msg.content,
