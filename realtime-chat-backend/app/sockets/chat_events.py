@@ -387,3 +387,151 @@ def handle_mark_public_read():
     user_info = connected_users[request.sid]
     print(f"User {user_info['username']} marked public chat as read")
     emit('public_chat_marked_read')
+
+@socketio.on('send_public_file')
+def handle_send_public_file(data):
+    if request.sid not in connected_users:
+        emit('error', {'message': 'Not authenticated'})
+        return
+
+    user_info = connected_users[request.sid]
+    filename = data.get('filename', '').strip()
+    file_url = data.get('file_url', '').strip()
+    file_size = data.get('file_size')
+    file_type = data.get('file_type', '').strip()
+
+    if not all([filename, file_url, file_size]):
+        emit('error', {'message': 'Filename, file_url, and file_size required'})
+        return
+
+    if public_room not in user_info['rooms']:
+        emit('error', {'message': 'Not in public chat'})
+        return
+
+    try:
+        from app.models.file import File
+        
+        # Create message first (empty content for file messages)
+        message = Message(content='', user_id=user_info['user_id'])
+        db.session.add(message)
+        db.session.flush()  # Get message ID
+
+        # Create file record
+        file_record = File(
+            filename=filename,
+            file_url=file_url,
+            file_size=file_size,
+            uploader_id=user_info['user_id'],
+            public_message_id=message.id
+        )
+        db.session.add(file_record)
+        db.session.commit()
+
+        # Prepare message data with file info
+        message_data = message.to_dict()
+        message_data['file'] = file_record.to_dict()
+        message_data['file']['type'] = file_type
+
+        # Broadcast to all users in public chat
+        emit('new_public_file_message', message_data, room=public_room)
+
+        print(f"Public file from {user_info['username']}: {filename}")
+
+    except Exception as e:
+        db.session.rollback()
+        emit('error', {'message': 'Failed to send file'})
+        print(f"Error sending public file: {e}")
+
+
+@socketio.on('send_private_file')
+def handle_send_private_file(data):
+    """Handle sending a private file message"""
+    if request.sid not in connected_users:
+        emit('error', {'message': 'Not authenticated'})
+        return
+
+    user_info = connected_users[request.sid]
+    other_user_id = data.get('other_user_id')
+    filename = data.get('filename', '').strip()
+    file_url = data.get('file_url', '').strip()
+    file_size = data.get('file_size')
+    file_type = data.get('file_type', '').strip()
+
+    if not all([other_user_id, filename, file_url, file_size]):
+        emit('error', {'message': 'Other user ID, filename, file_url, and file_size required'})
+        return
+
+    try:
+        other_user_id = int(other_user_id)
+    except ValueError:
+        emit('error', {'message': 'Invalid user ID'})
+        return
+
+    # Get the chat
+    chat = PrivateChat.get_chat_between_users(user_info['user_id'], other_user_id)
+    if not chat:
+        emit('error', {'message': 'Chat not found'})
+        return
+
+    room_name = f"private_chat_{chat.id}"
+    if room_name not in user_info['rooms']:
+        emit('error', {'message': 'Not in this private chat'})
+        return
+
+    try:
+        from app.models.file import File
+        
+        # Create message (empty content for file messages)
+        message = PrivateMessage(
+            content='',
+            sender_id=user_info['user_id'],
+            chat_id=chat.id
+        )
+        db.session.add(message)
+        db.session.flush()  # Get message ID
+
+        # Create file record
+        file_record = File(
+            filename=filename,
+            file_url=file_url,
+            file_size=file_size,
+            uploader_id=user_info['user_id'],
+            private_chat_id=chat.id
+        )
+        db.session.add(file_record)
+        
+        # Increment unread count for the other user
+        unread = UnreadCount.query.filter_by(user_id=other_user_id, chat_id=chat.id).first()
+        if not unread:
+            unread = UnreadCount(user_id=other_user_id, chat_id=chat.id, count=1)
+            db.session.add(unread)
+        else:
+            unread.count += 1
+        
+        db.session.commit()
+
+        # Get message with sender info and file info
+        message_data = message.to_dict()
+        message_data['username'] = user_info['username']
+        message_data['chat_id'] = chat.id
+        message_data['file'] = file_record.to_dict()
+        message_data['file']['type'] = file_type
+
+        # Send to both users in the chat room
+        emit('new_private_file_message', message_data, room=room_name)
+        
+        # Emit unread count update to the receiving user's personal room
+        receiving_user_room = f"user_{other_user_id}"
+        emit('unread_count_update', {
+            'chat_id': chat.id,
+            'unread_count': unread.count,
+            'other_user_id': user_info['user_id'],
+            'other_username': user_info['username']
+        }, room=receiving_user_room)
+
+        print(f"Private file from {user_info['username']} to chat {chat.id}: {filename}")
+
+    except Exception as e:
+        db.session.rollback()
+        emit('error', {'message': 'Failed to send file'})
+        print(f"Error sending private file: {e}")

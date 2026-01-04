@@ -30,7 +30,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
       >
         {!isOwn && avatar}
         <div className={cn(
-          "px-4 py-2 rounded-lg shadow-sm",
+          "px-4 py-2 rounded-lg shadow-sm relative",
           message.type === 'file' && message.file?.type.startsWith('image/') ? "max-w-md" : "max-w-xs lg:max-w-md",
           isOwn
             ? "bg-message-sent text-white rounded-br-sm"
@@ -41,7 +41,14 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
               {message.sender.username}
             </div>
           )}
-          <FileAttachment file={message.file!} />
+          {message.isUploading ? (
+            <div className="flex items-center justify-center space-x-2 py-4">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Uploading...</span>
+            </div>
+          ) : (
+            <FileAttachment file={message.file!} />
+          )}
           <div className={cn(
             "text-xs mt-1",
             isOwn ? "text-blue-100" : "text-gray-200"

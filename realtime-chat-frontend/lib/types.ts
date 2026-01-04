@@ -14,6 +14,7 @@ export interface Message {
   timestamp: Date;
   type: 'text' | 'file';
   file?: FileData;
+  isUploading?: boolean;
 }
 
 export interface FileData {

@@ -6,6 +6,8 @@ import { Send, Paperclip, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { MessageInputProps } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+import toast from 'react-hot-toast';
 
 export default function MessageInput({ chat, onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState('');
@@ -26,30 +28,35 @@ export default function MessageInput({ chat, onSendMessage }: MessageInputProps)
 
     setIsUploading(true);
     try {
-      // Process files
-      const processedFiles = await Promise.all(
+      // Upload files to Cloudinary first
+      const uploadedFiles = await Promise.all(
         files.map(async (file) => {
-          const url = URL.createObjectURL(file);
-          let thumbnail: string | undefined;
-          if (file.type.startsWith('image/')) {
-            // For images, use the same URL as thumbnail
-            thumbnail = url;
+          try {
+            const cloudinaryUrl = await uploadToCloudinary(file);
+            return {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url: cloudinaryUrl,
+              thumbnail: file.type.startsWith('image/') ? cloudinaryUrl : undefined,
+            };
+          } catch (error) {
+            console.error('Failed to upload file:', file.name, error);
+            toast.error(`Failed to upload ${file.name}`);
+            return null;
           }
-          return {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url,
-            thumbnail,
-          };
         })
       );
 
-      await onSendMessage(message, processedFiles);
+      // Filter out failed uploads
+      const successfulUploads = uploadedFiles.filter(f => f !== null);
+
+      await onSendMessage(message, successfulUploads);
       setMessage('');
       setFiles([]);
     } catch (error) {
       console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
     } finally {
       setIsUploading(false);
     }

@@ -19,6 +19,8 @@ import {
   leavePrivateChat,
   sendPublicMessage,
   sendPrivateMessage,
+  sendPublicFileMessage,
+  sendPrivateFileMessage,
 } from '@/lib/socket';
 import toast from 'react-hot-toast';
 
@@ -202,6 +204,82 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       });
     };
 
+    // Handle incoming public file messages
+    const handleNewPublicFileMessage = (data: any) => {
+      console.log('📨 Received new public file message:', data);
+      
+      const senderId = data.user?.id?.toString() || data.user_id?.toString();
+      const fileData = data.file;
+      
+      const newMessage: Message = {
+        id: data.id?.toString() || `msg-${Date.now()}`,
+        content: data.content || '',
+        senderId: senderId,
+        sender: {
+          id: senderId,
+          username: data.user?.username || data.username || 'Unknown',
+          email: '',
+          avatar: data.user?.avatar_url || undefined,
+        },
+        timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
+        type: 'file',
+        file: fileData ? {
+          id: fileData.id?.toString() || `file-${Date.now()}`,
+          name: fileData.filename,
+          size: fileData.file_size,
+          type: fileData.type || 'application/octet-stream',
+          url: fileData.file_url,
+          thumbnail: fileData.type?.startsWith('image/') ? fileData.file_url : undefined,
+        } : undefined,
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(msg => msg.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+    };
+
+    // Handle incoming private file messages
+    const handleNewPrivateFileMessage = (data: any) => {
+      console.log('📨 Received new private file message:', data);
+      
+      const senderId = data.sender?.id?.toString() || data.sender_id?.toString();
+      const fileData = data.file;
+      
+      const newMessage: Message = {
+        id: data.id?.toString() || `msg-${Date.now()}`,
+        content: data.content || '',
+        senderId: senderId,
+        sender: {
+          id: senderId,
+          username: data.sender?.username || data.username || 'Unknown',
+          email: '',
+          avatar: data.sender?.avatar_url || undefined,
+        },
+        timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
+        type: 'file',
+        file: fileData ? {
+          id: fileData.id?.toString() || `file-${Date.now()}`,
+          name: fileData.filename,
+          size: fileData.file_size,
+          type: fileData.type || 'application/octet-stream',
+          url: fileData.file_url,
+          thumbnail: fileData.type?.startsWith('image/') ? fileData.file_url : undefined,
+        } : undefined,
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(msg => msg.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+    };
+
     // Handle user joined/left notifications
     const handleUserJoined = (data: any) => {
       toast.success(data.message || `${data.username} joined the chat`);
@@ -230,6 +308,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
     socket.on('connected', handleConnected);
     socket.on('new_public_message', handleNewPublicMessage);
     socket.on('new_private_message', handleNewPrivateMessage);
+    socket.on('new_public_file_message', handleNewPublicFileMessage);
+    socket.on('new_private_file_message', handleNewPrivateFileMessage);
     socket.on('user_joined', handleUserJoined);
     socket.on('user_left', handleUserLeft);
     socket.on('joined_private', handleJoinedPrivate);
@@ -240,6 +320,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       socket.off('connected', handleConnected);
       socket.off('new_public_message', handleNewPublicMessage);
       socket.off('new_private_message', handleNewPrivateMessage);
+      socket.off('new_public_file_message', handleNewPublicFileMessage);
+      socket.off('new_private_file_message', handleNewPrivateFileMessage);
       socket.off('user_joined', handleUserJoined);
       socket.off('user_left', handleUserLeft);
       socket.off('joined_private', handleJoinedPrivate);
@@ -373,8 +455,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       <div className="flex-shrink-0">
         <MessageInput
           chat={chat}
-          onSendMessage={(content, processedFiles) => {
-            // Send message via Socket.IO
+          onSendMessage={async (content, uploadedFiles) => {
+            // Send text message via Socket.IO
             if (content.trim()) {
               if (chat.type === 'public') {
                 console.log('📤 Sending public message');
@@ -388,17 +470,19 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
               }
             }
 
-            // Handle file messages (kept for local preview)
-            if (processedFiles && processedFiles.length > 0) {
-              const fileMessages: Message[] = processedFiles.map((fileData, index) => ({
-                id: `msg-${Date.now()}-file-${index}`,
+            // Handle file messages with loading states
+            if (uploadedFiles && uploadedFiles.length > 0) {
+              // Add loading messages immediately
+              const loadingMessages: Message[] = uploadedFiles.map((fileData, index) => ({
+                id: `msg-loading-${Date.now()}-${index}`,
                 content: '',
                 senderId: user.id,
                 sender: user,
                 timestamp: new Date(),
                 type: 'file',
+                isUploading: true,
                 file: {
-                  id: `file-${Date.now()}-${index}`,
+                  id: `file-loading-${Date.now()}-${index}`,
                   name: fileData.name,
                   size: fileData.size,
                   type: fileData.type,
@@ -407,7 +491,42 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                 },
               }));
 
-              setMessages(prev => [...prev, ...fileMessages]);
+              setMessages(prev => [...prev, ...loadingMessages]);
+
+              // Send each file via socket
+              for (let i = 0; i < uploadedFiles.length; i++) {
+                const fileData = uploadedFiles[i];
+                try {
+                  if (chat.type === 'public') {
+                    sendPublicFileMessage({
+                      filename: fileData.name,
+                      file_url: fileData.url,
+                      file_size: fileData.size,
+                      file_type: fileData.type,
+                    });
+                  } else {
+                    const otherUser = chat.participants.find(p => p.id !== user.id);
+                    if (otherUser) {
+                      sendPrivateFileMessage(otherUser.id, {
+                        filename: fileData.name,
+                        file_url: fileData.url,
+                        file_size: fileData.size,
+                        file_type: fileData.type,
+                      });
+                    }
+                  }
+
+                  // Remove the loading message for this file after a delay
+                  setTimeout(() => {
+                    setMessages(prev => prev.filter(msg => msg.id !== loadingMessages[i].id));
+                  }, 500);
+                } catch (error) {
+                  console.error('Failed to send file:', error);
+                  toast.error(`Failed to send ${fileData.name}`);
+                  // Remove the loading message on error
+                  setMessages(prev => prev.filter(msg => msg.id !== loadingMessages[i].id));
+                }
+              }
             }
           }}
         />

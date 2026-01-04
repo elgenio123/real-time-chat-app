@@ -30,3 +30,15 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// File API functions
+export const saveFile = async (data: {
+  filename: string;
+  file_url: string;
+  file_size: number;
+  public_message_id?: number;
+  private_chat_id?: number;
+}) => {
+  const response = await api.post('/files/', data);
+  return response.data;
+};

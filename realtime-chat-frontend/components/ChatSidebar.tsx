@@ -140,6 +140,8 @@ export default function ChatSidebar({
                       src={chat.participants.find(p => p.id !== user.id)?.avatar || ''}
                       alt={chat.name}
                       className="w-full h-full object-cover"
+                      width={48}
+                      height={48}
                     />
                   ) : (
                     <span className="text-white font-semibold text-lg bg-gradient-to-br from-blue-400 to-blue-600 w-full h-full flex items-center justify-center">

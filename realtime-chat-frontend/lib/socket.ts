@@ -135,3 +135,35 @@ export const markPublicChatAsRead = () => {
   console.log('📤 Marking public chat as read');
   socket.emit('mark_public_read');
 };
+
+// File message senders
+export const sendPublicFileMessage = (fileData: {
+  filename: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
+}) => {
+  if (!socket?.connected) {
+    console.error('❌ Socket not connected. Cannot send public file message');
+    return;
+  }
+  console.log('📤 Sending public file message:', fileData.filename);
+  socket.emit('send_public_file', fileData);
+};
+
+export const sendPrivateFileMessage = (otherUserId: string | number, fileData: {
+  filename: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
+}) => {
+  if (!socket?.connected) {
+    console.error('❌ Socket not connected. Cannot send private file message');
+    return;
+  }
+  console.log('📤 Sending private file message to user:', otherUserId, 'File:', fileData.filename);
+  socket.emit('send_private_file', { 
+    other_user_id: otherUserId, 
+    ...fileData 
+  });
+};
