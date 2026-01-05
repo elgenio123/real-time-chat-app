@@ -24,6 +24,7 @@ export default function ChatSidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const router = useRouter();
@@ -48,6 +49,15 @@ export default function ChatSidebar({
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const getInitials = (username: string) => {
+    return username
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const publicChat: Chat = {
     id: 'public',
     name: 'Public Chat',
@@ -63,7 +73,13 @@ export default function ChatSidebar({
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
-          <Avatar user={user} size="md" />
+          <button
+            onClick={() => setShowAvatarModal(true)}
+            className="group hover:scale-110 transition-transform"
+            title="View profile picture"
+          >
+            <Avatar user={user} size="md" />
+          </button>
           <div className="flex-1">
             <h2 className="font-semibold text-gray-900">{user.username}</h2>
             <p className="text-sm text-gray-500">Online</p>
@@ -312,6 +328,50 @@ export default function ChatSidebar({
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Avatar Modal */}
+      {showAvatarModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowAvatarModal(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-2xl w-full"
+          >
+            <button
+              onClick={() => setShowAvatarModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {user.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatar}
+                alt="Avatar"
+                className="w-full rounded-lg shadow-2xl object-cover"
+              />
+            ) : (
+              <div className="w-full aspect-square rounded-lg shadow-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <div className="text-9xl font-bold text-white/80">
+                  {getInitials(user.username)}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Floating Action Button */}

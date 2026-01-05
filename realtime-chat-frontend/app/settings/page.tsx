@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Loader2, LogOut, Shield, Upload, User, ArrowLeft } from 'lucide-react';
+import { Check, Loader2, LogOut, Upload, User, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -200,16 +201,19 @@ export default function SettingsPage() {
           <div className="-mt-16 px-6 pb-8">
             <div className="flex flex-col md:flex-row md:items-end gap-6">
               <div className="relative inline-block">
-                <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <button
+                  onClick={() => setShowAvatarModal(true)}
+                  className="group w-32 h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center cursor-pointer hover:shadow-2xl transition-all"
+                >
                   {profile.avatar && !profile.avatar.includes('/default-avatar') ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   ) : (
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-3xl font-bold text-white group-hover:scale-105 transition-transform">
                       {getInitials(profile.username)}
                     </div>
                   )}
-                </div>
+                </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-2 right-2 bg-white text-slate-900 rounded-full p-2 shadow-lg hover:shadow-xl transition flex items-center gap-1 text-xs font-semibold"
@@ -434,6 +438,50 @@ export default function SettingsPage() {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Avatar Modal */}
+      {showAvatarModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowAvatarModal(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-2xl w-full"
+          >
+            <button
+              onClick={() => setShowAvatarModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {profile.avatar && !profile.avatar.includes('/default-avatar') ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar}
+                alt="Avatar"
+                className="w-full rounded-lg shadow-2xl object-cover"
+              />
+            ) : (
+              <div className="w-full aspect-square rounded-lg shadow-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <div className="text-9xl font-bold text-white/80">
+                  {getInitials(profile.username)}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
