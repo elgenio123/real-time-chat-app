@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Send, Phone, Video, MoreVertical } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Settings } from 'lucide-react';
 import { Message, ChatWindowProps } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import MessageInput from '@/components/MessageInput';
@@ -23,6 +23,9 @@ import {
   sendPrivateFileMessage,
 } from '@/lib/socket';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+
+
 
 export default function ChatWindow({ chat, user }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -476,9 +479,13 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <Video className="w-5 h-5 text-gray-600" />
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <MoreVertical className="w-5 h-5 text-gray-600" />
-          </button>
+          
+          <Link href="/settings">
+            <div className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer flex items-center justify-center">
+                <Settings className="w-5 h-5 text-gray-600" />
+            </div>
+          </Link>
+
         </div>
       </div>
 
