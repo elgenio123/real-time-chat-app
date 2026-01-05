@@ -15,10 +15,10 @@ def create_app(config_object=None):
 
     init_extensions(app)
 
-    @app.before_request
-    def handle_options():
-        if request.method == "OPTIONS":
-            return "", 200
+    # @app.before_request
+    # def handle_options():
+    #     if request.method == "OPTIONS":
+    #         return "", 200
 
     from app.models import user
 

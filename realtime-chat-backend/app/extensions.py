@@ -16,12 +16,10 @@ def init_extensions(app):
     socketio.init_app(app)
     CORS(
         app,
-        resources={r"/*": {
-            "origins": [
+        origins=[
                 "https://real-time-chat-app-frontend-q0ta.onrender.com",
                 "http://localhost:3000"
-            ]
-        }},
+            ],
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
