@@ -52,7 +52,8 @@ This project is a real-time chat application with file-sharing capabilities. It 
 4. Create .env file at the root in the backend folder and add the env variables as follows:
 
    ```bash
-   DATABASE_URL and SECRET_KEY
+   DATABASE_URL=value
+   SECRET_KEY=value
    ```
 
 5. Run tests:
@@ -74,7 +75,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 2. Create a .env.local file at the root of the front and add(consider creating an account on cloudinary in order to get these values)
    
    ```bash
-   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=vale
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=value
    NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=value
    ```
 
