@@ -14,4 +14,4 @@ def init_extensions(app):
     migrate.init_app(app, db) 
     jwt.init_app(app)
     socketio.init_app(app)
-    CORS(app, origins=["https://realtime-chat-frontend.example.com", "http://localhost:3000"])
+    CORS(app, origins=["https://realtime-chat-frontend.example.com", "http://localhost:3000", "http://localhost:3001"])

@@ -24,9 +24,11 @@ export default function ChatSidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false); //li
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const router = useRouter();
+  
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
@@ -34,7 +36,7 @@ export default function ChatSidebar({
       const response = await api.get('/users/');
       console.log(response);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setAllUsers(response.data.users.map((u: any) => ({ ...u, avatar: u.avatar_url })).filter((u: User) => u.id !== user.id)); // Exclude current user
+      setAllUsers(response.data.users.map((u: any) => ({ ...u, avatar: u.avatar })).filter((u: User) => u.id !== user.id)); // Exclude current user
       setShowUsersModal(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error) {
@@ -63,7 +65,13 @@ export default function ChatSidebar({
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
-          <Avatar user={user} size="md" />
+          <div
+  className="cursor-pointer"
+  onClick={() => setShowProfileModal(true)} //li
+>
+  <Avatar user={user} size="md" />
+</div> 
+
           <div className="flex-1">
             <h2 className="font-semibold text-gray-900">{user.username}</h2>
             <p className="text-sm text-gray-500">Online</p>
@@ -226,7 +234,7 @@ export default function ChatSidebar({
                 className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Logout
-              </button>
+cd              </button>
             </div>
           </motion.div>
         </div>
@@ -313,6 +321,42 @@ export default function ChatSidebar({
           </motion.div>
         </div>
       )}
+        {showProfileModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 w-80 text-center relative">
+      {/* Close Button */}
+      <button
+        onClick={() => setShowProfileModal(false)}
+        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+      >
+        ✕
+      </button>
+
+      {/* Profile Image */}
+      {user.avatar ? (
+        <Image
+          src={user.avatar}  // <-- Use avatar_url
+          alt="Profile Picture"
+          width={160}
+          height={160}
+          className="object-cover w-full"
+        />
+      ) : (
+        <div className="w-36 h-36 rounded-full bg-blue-500 text-white flex items-center justify-center text-4xl font-semibold mx-auto">
+          {user.username
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()}
+        </div>
+      )}
+
+    </div>
+  </div>
+)}
+
+
 
       {/* Floating Action Button */}
       <div className="absolute bottom-6 right-6">
