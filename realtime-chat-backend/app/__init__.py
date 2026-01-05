@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from app.config import Config
 from app.extensions import init_extensions
 from app.api import api_bp
@@ -14,6 +14,12 @@ def create_app(config_object=None):
         app.config.from_object(Config)
 
     init_extensions(app)
+
+    # @app.before_request
+    # def handle_options():
+    #     if request.method == "OPTIONS":
+    #         return "", 200
+
     from app.models import user
 
     @jwt.token_in_blocklist_loader

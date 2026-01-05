@@ -14,3 +14,7 @@ api_bp.register_blueprint(auth_bp, url_prefix="/auth")
 api_bp.register_blueprint(user_bp, url_prefix="/users")
 api_bp.register_blueprint(messages_bp, url_prefix="")
 api_bp.register_blueprint(files_bp, url_prefix="/files")
+
+@api_bp.route("/", methods=["GET"])
+def index():
+    return {"message": "Welcome to the Real-time Chat API"}, 200

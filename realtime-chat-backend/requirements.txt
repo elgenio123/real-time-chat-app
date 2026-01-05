@@ -9,3 +9,5 @@ python-dotenv
 flask-jwt-extended
 pytest
 pytest-flask
+gunicorn
+eventlet
