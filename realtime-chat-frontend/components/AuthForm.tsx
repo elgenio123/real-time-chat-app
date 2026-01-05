@@ -79,8 +79,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 setError('Username is required');
                 return;
             }
-            if (formData.username.length < 4) {
-                setError('Username must be at least 4 characters long');
+            if (formData.username.length < 3) {
+                setError('Username must be at least 3 characters long');
                 return;
             }
             if (formData.password.length < 6) {
