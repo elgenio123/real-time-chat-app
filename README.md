@@ -10,6 +10,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 - **User Authentication**: Secure JWT-based login and registration system
 - **WebSocket Events**: Real-time events for joining/leaving chats and sending messages
 - **Responsive Design**: Optimized for both desktop and mobile devices
+- **Cloudinary**: For file storage and persistence
 
 ## Technologies Used
 
@@ -18,6 +19,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 - Redux (for state management)
 - Socket.IO (for real-time communication)
 - Axios (for API requests)
+- Cloudinary
 
 ### Backend
 - Flask
@@ -30,6 +32,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 ### Prerequisites
 - Node.js and npm (for the frontend)
 - Python 3 and pip (for the backend)
+- Postgresql and pgadmin
 
 ### Backend Setup
 1. Navigate to the backend directory:
@@ -46,27 +49,34 @@ This project is a real-time chat application with file-sharing capabilities. It 
    pip install -r requirements.txt
 
    ```
+4. Create .env file at the root in the backend folder and add the env variables DATABASE_URL and SECRET_KEY
 
-4. Run tests:
+5. Run tests:
    ```bash
    python -m pytest tests/ -v
 
    ```
-5. Run the backend server:
+6. Migrate the db and run the backend server:
    ```bash
+   flask db upgrade
    python run.py
    ```
 
 ### Frontend Setup
-1. Navigate to the frontend directory:
+1. In a new terminal Navigate to the frontend directory:
    ```bash
    cd realtime-chat-frontend
    ```
-2. Install dependencies:
+2. Create a .env.local file at the root of the front and add(consider creating an account on cloudinary in order to get these values)
+   
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=vale
+   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=value
+
+3. Install dependencies:
    ```bash
    npm install
    ```
-3. Start the development server:
+4. Start the development server:
    ```bash
    npm run dev
    ```
@@ -86,8 +96,12 @@ This project is a real-time chat application with file-sharing capabilities. It 
 - `app/`: Contains next.js application code.
 - `package.json`: Lists JavaScript dependencies.
 
+
+## Access site
+The front and backend applications were deployed on render and accessible via this [link](https://real-time-chat-app-frontend-q0ta.onrender.com/)
+
 ## Contributing
-Feel free to clone this repository and create a new branch where you will be running your changes. Make a push to your branch and open a pull request.
+Feel free to clone this repository and create a new branch or create a fork where you will be running your changes. Make a push to your branch and open a pull request.
 
 ## License
 This project is licensed under the AIMS License.
