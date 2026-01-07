@@ -33,6 +33,30 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
   const [totalUsers, setTotalUsers] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef(getSocket());
+  const pendingQueueRef = useRef<{ id: string; content: string; chatType: 'public' | 'private'; otherUserId?: string }[]>([]);
+
+  const resolvePending = (incoming: Message) => {
+    setMessages(prev => {
+      const next = [...prev];
+      const pendingIndex = next.findIndex(
+        msg => msg.senderId === String(user.id) && msg.status === 'pending' && msg.type === incoming.type && msg.content === incoming.content
+      );
+      if (pendingIndex !== -1) {
+        const pendingId = next[pendingIndex].id;
+        next.splice(pendingIndex, 1);
+        pendingQueueRef.current = pendingQueueRef.current.filter(item => item.id !== pendingId);
+      }
+
+      const existingIndex = next.findIndex(m => m.id === incoming.id);
+      const incomingWithStatus = { ...incoming, status: 'sent' as const };
+      if (existingIndex !== -1) {
+        next[existingIndex] = incomingWithStatus;
+      } else {
+        next.push(incomingWithStatus);
+      }
+      return next;
+    });
+  };
 
   // Initialize socket connection
   useEffect(() => {
@@ -40,7 +64,25 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       socketRef.current = initializeSocket();
     }
 
+    const socket = socketRef.current;
+    const handleConnect = () => {
+      if (pendingQueueRef.current.length === 0) return;
+      const queued = [...pendingQueueRef.current];
+      queued.forEach(item => {
+        if (item.chatType === 'public') {
+          sendPublicMessage(item.content);
+        } else if (item.otherUserId) {
+          sendPrivateMessage(item.otherUserId, item.content);
+        }
+        setMessages(prev => prev.map(msg => msg.id === item.id ? { ...msg, status: 'sent' } : msg));
+      });
+      pendingQueueRef.current = [];
+    };
+
+    socket?.on('connect', handleConnect);
+
     return () => {
+      socket?.off('connect', handleConnect);
       // Cleanup on unmount
       if (chat?.type === 'public') {
         leavePublicChat();
@@ -100,7 +142,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                   type: file.file_type || 'application/octet-stream',
                   url: file.file_url,
                   thumbnail: (file.file_type || '').startsWith('image/') ? file.file_url : undefined,
-                },
+                  },
+                  status: 'sent',
               };
             }
             return {
@@ -114,7 +157,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                 avatar: msg.user.avatar_url,
               },
               timestamp: new Date(msg.timestamp),
-              type: 'text' as const,
+                type: 'text' as const,
+                status: 'sent',
             };
           });
           setMessages(fetchedMessages);
@@ -155,6 +199,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                     url: file.file_url,
                     thumbnail: (file.file_type || '').startsWith('image/') ? file.file_url : undefined,
                   },
+                  status: 'sent',
                 };
               }
               return {
@@ -169,6 +214,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                 },
                 timestamp: new Date(msg.timestamp),
                 type: 'text' as const,
+                status: 'sent',
               };
             });
             setMessages(fetchedMessages);
@@ -231,17 +277,16 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         },
         timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         type: 'text',
+        status: String(senderId) === String(user.id) ? 'sent' : undefined,
       };
       
       console.log('📨 isOwn check:', String(senderId) === String(user.id));
 
-      setMessages(prev => {
-        // Avoid duplicates
-        if (prev.some(msg => msg.id === newMessage.id)) {
-          return prev;
-        }
-        return [...prev, newMessage];
-      });
+      if (String(senderId) === String(user.id)) {
+        resolvePending(newMessage);
+      } else {
+        setMessages(prev => (prev.some(msg => msg.id === newMessage.id) ? prev : [...prev, newMessage]));
+      }
     };
 
     // Handle incoming private messages
@@ -263,17 +308,16 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         },
         timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         type: 'text',
+        status: String(senderId) === String(user.id) ? 'sent' : undefined,
       };
       
       console.log('📨 isOwn check:', String(senderId) === String(user.id));
 
-      setMessages(prev => {
-        // Avoid duplicates
-        if (prev.some(msg => msg.id === newMessage.id)) {
-          return prev;
-        }
-        return [...prev, newMessage];
-      });
+      if (String(senderId) === String(user.id)) {
+        resolvePending(newMessage);
+      } else {
+        setMessages(prev => (prev.some(msg => msg.id === newMessage.id) ? prev : [...prev, newMessage]));
+      }
     };
 
     // Handle incoming public file messages
@@ -534,16 +578,40 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         <MessageInput
           chat={chat}
           onSendMessage={async (content, uploadedFiles) => {
+            const socketConnected = socketRef.current?.connected;
+
             // Send text message via Socket.IO
             if (content.trim()) {
-              if (chat.type === 'public') {
-                console.log('📤 Sending public message');
-                sendPublicMessage(content);
-              } else {
+              if (!socketConnected) {
+                const tempId = `pending-${Date.now()}`;
+                const optimistic: Message = {
+                  id: tempId,
+                  content,
+                  senderId: user.id,
+                  sender: user,
+                  timestamp: new Date(),
+                  type: 'text',
+                  status: 'pending',
+                };
+                setMessages(prev => [...prev, optimistic]);
+
                 const otherUser = chat.participants.find(p => p.id !== user.id);
-                if (otherUser) {
-                  console.log('📤 Sending private message to:', otherUser.id);
-                  sendPrivateMessage(otherUser.id, content);
+                pendingQueueRef.current.push({
+                  id: tempId,
+                  content,
+                  chatType: chat.type,
+                  otherUserId: otherUser?.id?.toString(),
+                });
+              } else {
+                if (chat.type === 'public') {
+                  console.log('📤 Sending public message');
+                  sendPublicMessage(content);
+                } else {
+                  const otherUser = chat.participants.find(p => p.id !== user.id);
+                  if (otherUser) {
+                    console.log('📤 Sending private message to:', otherUser.id);
+                    sendPrivateMessage(otherUser.id, content);
+                  }
                 }
               }
             }

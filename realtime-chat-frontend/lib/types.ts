@@ -15,6 +15,7 @@ export interface Message {
   type: 'text' | 'file';
   file?: FileData;
   isUploading?: boolean;
+  status?: 'pending' | 'sent'; // delivery indicator for own messages
 }
 
 export interface FileData {

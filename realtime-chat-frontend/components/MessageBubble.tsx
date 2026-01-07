@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, File } from 'lucide-react';
+import { FileText, File, Clock, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { FileData, MessageBubbleProps } from '@/lib/types';
@@ -52,7 +52,7 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
             "text-xs mt-1",
             isOwn ? "text-blue-100" : "text-gray-200"
           )}>
-            {formatTime(message.timestamp)}
+            <Status time={formatTime(message.timestamp)} status={isOwn ? message.status : undefined} />
           </div>
         </div>
         {isOwn && avatar}
@@ -88,11 +88,21 @@ export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubb
           "text-xs mt-1",
           isOwn ? "text-blue-100" : "text-gray-200"
         )}>
-          {formatTime(message.timestamp)}
+          <Status time={formatTime(message.timestamp)} status={isOwn ? message.status : undefined} />
         </div>
       </div>
       {isOwn && avatar}
     </motion.div>
+  );
+}
+
+function Status({ time, status }: { time: string; status?: 'pending' | 'sent' }) {
+  return (
+    <span className="flex items-center gap-1">
+      {status === 'pending' && <Clock className="w-3 h-3" />}
+      {status === 'sent' && <Check className="w-3 h-3" />}
+      <span>{time}</span>
+    </span>
   );
 }
 
